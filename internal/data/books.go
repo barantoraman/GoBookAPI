@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/barantoraman/GoBookAPI/internal/validator"
+	"github.com/lib/pq"
 )
 
 type Book struct {
@@ -26,7 +27,14 @@ type BookModel struct {
 }
 
 func (b BookModel) Insert(book *Book) error {
-	return nil
+	query := `
+		INSERT INTO books (isbn, title, author, genres, pages, language , publisher, year)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, created_at, version`
+
+	args := []interface{}{book.ISBN, book.Title, book.Author, pq.Array(book.Genres), book.Pages, book.Language, book.Publisher, book.Year}
+
+	return b.DB.QueryRow(query, args...).Scan(&book.ID, &book.CreatedAt, &book.Version)
 }
 
 func (b BookModel) Get(id int64) (*Book, error) {

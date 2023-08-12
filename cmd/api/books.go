@@ -35,14 +35,29 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 		Publisher: input.Publisher,
 		Year:      input.Year,
 	}
+
 	v := validator.New()
+
 	// Call the ValidateBook() function and return a response containing the errors if
 	// any of the checks fail.
 	if data.ValidateBook(v, book); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	fmt.Fprintf(w, "%+v\n", input)
+
+	err = app.models.Books.Insert(book)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/books/%d", book.ID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"book": book}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) showBookHandler(w http.ResponseWriter, r *http.Request) {
