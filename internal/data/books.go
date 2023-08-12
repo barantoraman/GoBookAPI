@@ -1,6 +1,7 @@
 package data
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/barantoraman/GoBookAPI/internal/validator"
@@ -18,6 +19,26 @@ type Book struct {
 	Publisher string    `json:"publisher"`
 	Year      int32     `json:"year"`
 	Version   int32     `json:"version"`
+}
+
+type BookModel struct {
+	DB *sql.DB
+}
+
+func (b BookModel) Insert(book *Book) error {
+	return nil
+}
+
+func (b BookModel) Get(id int64) (*Book, error) {
+	return nil, nil
+}
+
+func (b BookModel) Update(book *Book) error {
+	return nil
+}
+
+func (b BookModel) Delete(id int64) error {
+	return nil
 }
 
 // ValidateBook checks the validity of the provided book data
