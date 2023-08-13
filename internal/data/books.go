@@ -36,7 +36,10 @@ func (b BookModel) Insert(book *Book) error {
 
 	args := []interface{}{book.ISBN, book.Title, book.Author, pq.Array(book.Genres), book.Pages, book.Language, book.Publisher, book.Year}
 
-	return b.DB.QueryRow(query, args...).Scan(&book.ID, &book.CreatedAt, &book.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return b.DB.QueryRowContext(ctx, query, args...).Scan(&book.ID, &book.CreatedAt, &book.Version)
 }
 
 func (b BookModel) Get(id int64) (*Book, error) {
@@ -50,7 +53,10 @@ func (b BookModel) Get(id int64) (*Book, error) {
 
 	var book Book
 
-	err := b.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := b.DB.QueryRowContext(ctx, query, id).Scan(
 		&book.ID,
 		&book.CreatedAt,
 		&book.ISBN,
@@ -117,7 +123,10 @@ func (b BookModel) Delete(id int64) error {
 		DELETE FROM books
 		WHERE id = $1`
 
-	result, err := b.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := b.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
