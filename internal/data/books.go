@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/barantoraman/GoBookAPI/internal/validator"
@@ -140,6 +141,65 @@ func (b BookModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 	return nil
+}
+
+func (b BookModel) GetAll(isbn string, title string, author string, genres []string, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, created_at, isbn, title, author, genres, pages, language, publisher, year, version
+		FROM books
+		WHERE (isbn = $1 OR $1 = '')
+		AND (to_tsvector('simple',title) @@ plainto_tsquery('simple', $2) OR $2 = '')
+		AND (to_tsvector('simple',author) @@ plainto_tsquery('simple', $3) OR $3 = '')
+		AND (genres @> $4 OR $4 = '{}')
+		ORDER BY %s %s , id ASC
+		LIMIT $5 OFFSET $6`, filters.sortColumn(), filters.sortDirection())
+
+	// Create a context with a 3-second timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	args := []interface{}{isbn, title, author, pq.Array(genres), filters.limit(), filters.offset()}
+
+	// Use QueryContext() to execute the query. This returns a sql.Rows resultset
+	// containing the result.
+	rows, err := b.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err //update this to return an empty metadata struct
+	}
+	defer rows.Close()
+
+	totalRecords := 0
+	//Initialize an empty slice to hold the book data
+	books := []*Book{}
+
+	//Use rows.Next to iterate through the rows in the resultset.
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(
+			&totalRecords,
+			&book.ID,
+			&book.CreatedAt,
+			&book.ISBN,
+			&book.Title,
+			&book.Author,
+			pq.Array(&book.Genres),
+			&book.Pages,
+			&book.Language,
+			&book.Publisher,
+			&book.Year,
+			&book.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	metadata := calculateMetadata(totalRecords, filters.Cursor, filters.CursorSize)
+	return books, metadata, nil
 }
 
 // ValidateBook checks the validity of the provided book data

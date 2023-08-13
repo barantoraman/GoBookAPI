@@ -192,3 +192,45 @@ func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+// listBooksHandler retrieves a list of books based on query parameters,
+// applies filters and sorting, and sends a JSON response with the results.
+func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		ISBN   string
+		Title  string
+		Author string
+		Genres []string
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.ISBN = app.readString(qs, "isbn", "")
+	input.Title = app.readString(qs, "title", "")
+	input.Author = app.readString(qs, "author", "")
+	input.Genres = app.readCSV(qs, "genres", []string{})
+
+	input.Filters.Cursor = app.readInt(qs, "cursor", 1, v)
+	input.Filters.CursorSize = app.readInt(qs, "cursor_size", 20, v)
+
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "title", "author", "year", "-id", "-title", "-author", "-year"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	books, metadata, err := app.models.Books.GetAll(input.ISBN, input.Title, input.Author, input.Genres, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
