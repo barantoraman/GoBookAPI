@@ -17,6 +17,7 @@ func (app *application) routes() *httprouter.Router {
 	router.HandlerFunc(http.MethodPost, "/v1/books", app.createBookHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/books/:id", app.showBookHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/books/:id", app.updateBookHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/books/:id", app.deleteBookHandler)
 	// Return the httprouter instance.
 	return router
 }
