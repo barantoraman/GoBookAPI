@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/barantoraman/GoBookAPI/internal/validator"
@@ -38,9 +39,40 @@ func (b BookModel) Insert(book *Book) error {
 }
 
 func (b BookModel) Get(id int64) (*Book, error) {
-	return nil, nil
-}
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+	query := `
+	SELECT id, created_at, isbn, title, author, genres, pages, language, publisher, year, version
+	FROM books
+	WHERE id = $1`
 
+	var book Book
+
+	err := b.DB.QueryRow(query, id).Scan(
+		&book.ID,
+		&book.CreatedAt,
+		&book.ISBN,
+		&book.Title,
+		&book.Author,
+		pq.Array(&book.Genres),
+		&book.Pages,
+		&book.Language,
+		&book.Publisher,
+		&book.Year,
+		&book.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &book, nil
+}
 func (b BookModel) Update(book *Book) error {
 	return nil
 }
