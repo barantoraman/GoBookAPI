@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -73,7 +74,38 @@ func (b BookModel) Get(id int64) (*Book, error) {
 	}
 	return &book, nil
 }
+
 func (b BookModel) Update(book *Book) error {
+	query := `
+		UPDATE books
+		SET isbn = $1, title = $2, author = $3, genres = $4, pages = $5, language = $6, publisher = $7 , year = $8, version = version + 1 
+		WHERE id = $9 AND version = $10
+		RETURNING version`
+
+	args := []interface{}{
+		book.ISBN,
+		book.Title,
+		book.Author,
+		pq.Array(book.Genres),
+		book.Pages,
+		book.Language,
+		book.Publisher,
+		book.Year,
+		book.ID,
+		book.Version,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := b.DB.QueryRowContext(ctx, query, args...).Scan(&book.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
 	return nil
 }
 
