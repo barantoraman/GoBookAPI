@@ -21,5 +21,5 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/books", app.listBooksHandler)
 
 	// Wrap the router with the middlewares
-	return app.recoverPanic(router)
+	return app.recoverPanic(app.rateLimit(router))
 }
