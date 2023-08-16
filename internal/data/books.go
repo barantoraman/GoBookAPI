@@ -29,6 +29,7 @@ type BookModel struct {
 	DB *sql.DB
 }
 
+// inserts a new book record into the database.
 func (b BookModel) Insert(book *Book) error {
 	query := `
 		INSERT INTO books (isbn, title, author, genres, pages, language , publisher, year)
@@ -43,6 +44,7 @@ func (b BookModel) Insert(book *Book) error {
 	return b.DB.QueryRowContext(ctx, query, args...).Scan(&book.ID, &book.CreatedAt, &book.Version)
 }
 
+// retrieves a book record from the database by its ID.
 func (b BookModel) Get(id int64) (*Book, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
@@ -82,6 +84,7 @@ func (b BookModel) Get(id int64) (*Book, error) {
 	return &book, nil
 }
 
+// updates a book record in the database.
 func (b BookModel) Update(book *Book) error {
 	query := `
 		UPDATE books
@@ -116,6 +119,7 @@ func (b BookModel) Update(book *Book) error {
 	return nil
 }
 
+// removes a book record from the database by its ID.
 func (b BookModel) Delete(id int64) error {
 	if id < 1 {
 		return ErrRecordNotFound
@@ -143,6 +147,7 @@ func (b BookModel) Delete(id int64) error {
 	return nil
 }
 
+// retrieves a list of book records from the database based on the provided filters.
 func (b BookModel) GetAll(isbn string, title string, author string, genres []string, filters Filters) ([]*Book, Metadata, error) {
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, created_at, isbn, title, author, genres, pages, language, publisher, year, version

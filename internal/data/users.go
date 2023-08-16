@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"time"
@@ -10,9 +11,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	ErrDuplicateEmail = errors.New("duplicate email")
-)
+var ErrDuplicateEmail = errors.New("duplicate email")
+var AnonymousUser = &User{}
 
 type UserModel struct {
 	DB *sql.DB
@@ -34,6 +34,10 @@ type User struct {
 type password struct {
 	plaintext *string
 	hash      []byte
+}
+
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }
 
 // create the bcrypt hash of plaintext password and stores
@@ -177,4 +181,51 @@ func (m UserModel) Update(user *User) error {
 		}
 	}
 	return nil
+}
+
+func (m UserModel) GetForToken(tokenPlaintext string) (*User, error) {
+	// Calculate the SHA-256 hash of the plaintext token provided by the client.
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+
+	// Set up the SQL query to retrieve user data.
+	query := `
+	SELECT users.id, users.created_at, users.name, users.email, users.password_hash, users.activated, users.version 
+	FROM users
+	INNER JOIN tokens
+	ON users.id = tokens.user_id
+	WHERE tokens.hash = $1
+	AND tokens.expiry > $2`
+
+	// Create a slice containing the query arguments, including the token hash and current time.
+	args := []interface{}{tokenHash[:], time.Now()}
+
+	// Initialize a User struct to store the query result.
+	var user User
+
+	// Set up a context with a timeout for the query execution.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Execute the query, scan the results into the User struct.
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Name,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			// Return an error indicating that no matching record was found.
+			return nil, ErrRecordNotFound
+		default:
+			// Return the encountered error.
+			return nil, err
+		}
+	}
+	// Return the retrieved user information.
+	return &user, nil
 }

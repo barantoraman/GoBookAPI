@@ -17,16 +17,19 @@ func (app *application) routes() http.Handler {
 	// for healthcheck
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
-	// for books
-	router.HandlerFunc(http.MethodPost, "/v1/books", app.createBookHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/books/:id", app.showBookHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/books/:id", app.updateBookHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/books/:id", app.deleteBookHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/books", app.listBooksHandler)
+	//for books
+	router.HandlerFunc(http.MethodGet, "/v1/books", app.requireActivatedUser(app.listBooksHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/books", app.requireActivatedUser(app.createBookHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/books/:id", app.requireActivatedUser(app.showBookHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/books/:id", app.requireActivatedUser(app.updateBookHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/books/:id", app.requireActivatedUser(app.deleteBookHandler))
 
 	// for users
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 
+	// for authentication
+	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+
 	// Wrap the router with the middlewares
-	return app.recoverPanic(app.rateLimit(router))
+	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }

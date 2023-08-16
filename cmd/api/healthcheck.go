@@ -4,6 +4,7 @@ import (
 	"net/http"
 )
 
+// healthcheckHandler handles the HTTP GET request to check the health status of the application.
 func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	env := envelope{
 		"status": "available",

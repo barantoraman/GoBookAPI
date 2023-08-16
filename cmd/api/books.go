@@ -9,7 +9,9 @@ import (
 	"github.com/barantoraman/GoBookAPI/internal/validator"
 )
 
+// createBookHandler handles the HTTP POST request to create a new book.
 func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request) {
+	// Define a struct to hold the input data from the JSON request.
 	var input struct {
 		ISBN      string     `json:"isbn"`
 		Title     string     `json:"title"`
@@ -20,11 +22,15 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 		Publisher string     `json:"publisher"`
 		Year      int32      `json:"year"`
 	}
+
+	// Read and parse the JSON request body into the input struct.
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+
+	// Create a new Book instance using the input data.
 	book := &data.Book{
 		ISBN:      input.ISBN,
 		Title:     input.Title,
@@ -38,59 +44,72 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 
 	v := validator.New()
 
-	// Call the ValidateBook() function and return a response containing the errors if
-	// any of the checks fail.
+	// Validate the book data using the ValidateBook() function and return errors if any.
 	if data.ValidateBook(v, book); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
+	// Insert the validated book into the database.
 	err = app.models.Books.Insert(book)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
+	// Set the 'Location' header for the newly created book resource.
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/books/%d", book.ID))
 
+	// Write the JSON response with the created book data and headers.
 	err = app.writeJSON(w, http.StatusCreated, envelope{"book": book}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
+// showBookHandler handles the HTTP GET request to retrieve a book.
 func (app *application) showBookHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract the book ID from the request.
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
+	// Retrieve the book from the database.
 	book, err := app.models.Books.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
+			// Respond with "Not Found" if book doesn't exist.
 		default:
 			app.serverErrorResponse(w, r, err)
+			// Respond with server error for other errors.
 		}
 		return
 	}
 
+	// Respond with the book data in JSON format.
 	err = app.writeJSON(w, http.StatusOK, envelope{"book": book}, nil)
 	if err != nil {
+		// Respond with server error if JSON writing fails.
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
+// updateBookHandler handles the HTTP PATCH request to update a book's details.
 func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract the book ID from the request.
 	id, err := app.readIDParam(r)
 	if err != nil {
+		// Respond with "Not Found" if ID is invalid.
 		app.notFoundResponse(w, r)
 		return
 	}
-	// Retrieve the book record as normal.
+
+	// Retrieve the existing book record from the database
 	book, err := app.models.Books.Get(id)
 	if err != nil {
 		switch {
@@ -102,7 +121,8 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	// Use pointers for the Title, Year and Runtime fields.
+
+	// Define a struct to hold the updated fields received from the JSON request
 	var input struct {
 		ISBN      *string     `json:"isbn"`
 		Title     *string     `json:"title"`
@@ -113,13 +133,15 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		Publisher *string     `json:"publisher"`
 		Year      *int32      `json:"year"`
 	}
-	// Decode the JSON as normal.
+
+	// Decode the JSON request body and update the book fields if values are provided.
 	err = app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
+	// Update the book fields with the new values if provided.
 	if input.ISBN != nil {
 		book.ISBN = *input.ISBN
 	}
@@ -131,7 +153,7 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 	}
 	if input.Genres != nil {
 		book.Genres = input.Genres
-		// Note that we don't need to dereference a slice.
+		// we don't need to dereference a slice.
 	}
 	if input.Pages != nil {
 		book.Pages = *input.Pages
@@ -142,7 +164,7 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 	if input.Publisher != nil {
 		book.Publisher = *input.Publisher
 	}
-	// We also do the same for the other fields in the input struct.
+
 	if input.Year != nil {
 		book.Year = *input.Year
 	}
@@ -153,6 +175,8 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
+
+	// Update the book record in the database.
 	err = app.models.Books.Update(book)
 	if err != nil {
 		switch {
@@ -163,19 +187,24 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
+
+	// Respond with the updated book data in JSON format.
 	err = app.writeJSON(w, http.StatusOK, envelope{"book": book}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
+// deleteBookHandler handles the HTTP DELETE request to remove a book by its ID.
 func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract the book ID from the request.
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
+	// Delete the book record from the database.
 	err = app.models.Books.Delete(id)
 	if err != nil {
 		switch {
@@ -187,6 +216,7 @@ func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Respond with a success message in JSON format.
 	err = app.writeJSON(w, http.StatusOK, envelope{"message": "book successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

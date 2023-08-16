@@ -12,6 +12,7 @@ import (
 )
 
 func (app *application) serve() error {
+	// Configure the HTTP server settings
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", app.config.port),
 		Handler:      app.routes(),
@@ -22,6 +23,7 @@ func (app *application) serve() error {
 
 	shutdownError := make(chan error)
 
+	// Set up a goroutine to handle server shutdown on signals.
 	go func() {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -35,11 +37,13 @@ func (app *application) serve() error {
 		shutdownError <- srv.Shutdown(ctx)
 	}()
 
+	// Log server startup.
 	app.logger.PrintInfo("starting server", map[string]string{
 		"addr": srv.Addr,
 		"env":  app.config.env,
 	})
 
+	// Start the HTTP server and handle errors.
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
 		return err
@@ -49,8 +53,10 @@ func (app *application) serve() error {
 	if err != nil {
 		return err
 	}
+
 	app.logger.PrintInfo("stopped server", map[string]string{
 		"addr": srv.Addr,
 	})
+
 	return nil
 }

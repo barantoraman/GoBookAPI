@@ -16,27 +16,35 @@ import (
 
 type envelope map[string]interface{}
 
+// readIDParam extracts and validates an integer ID parameter from the request's context.
 func (app *application) readIDParam(r *http.Request) (int64, error) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
+
 	if err != nil || id < 1 {
 		return 0, errors.New("invalid id parameter")
 	}
+
 	return id, nil
 }
 
+// writeJSON marshals data to JSON format, sets response headers, writes status, and sends JSON response.
 func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	js, err := json.MarshalIndent(data, "", "\t")
+
 	if err != nil {
 		return err
 	}
+
 	js = append(js, '\n')
 	for key, value := range headers {
 		w.Header()[key] = value
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	w.Write(js)
+
 	return nil
 }
 
@@ -86,6 +94,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 			return err
 		}
 	}
+
 	// Call Decode() again, using a pointer to an empty anonymous struct as the
 	// destination. If the request body only contained a single JSON value this will
 	// return an io.EOF error.
@@ -93,6 +102,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	if err != io.EOF {
 		return errors.New("body must only contain a single JSON value")
 	}
+
 	return nil
 }
 
@@ -103,6 +113,7 @@ func (app *application) readString(qs url.Values, key string, defaultValue strin
 	if s == "" {
 		return defaultValue
 	}
+
 	return s
 }
 
@@ -113,6 +124,7 @@ func (app *application) readCSV(qs url.Values, key string, defaultValue []string
 	if csv == "" {
 		return defaultValue
 	}
+
 	return strings.Split(csv, ",")
 }
 
@@ -124,10 +136,12 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	if s == "" {
 		return defaultValue
 	}
+
 	i, err := strconv.Atoi(s)
 	if err != nil {
 		v.AddError(key, "must be an integer value")
 		return defaultValue
 	}
+
 	return i
 }

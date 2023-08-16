@@ -26,6 +26,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		Activated: true,
 	}
 
+	// Set the password for the user using the provided input.
 	err = user.Password.Set(input.Password)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -37,6 +38,8 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
+
+	// Insert the validated user into the database.
 	err = app.models.Users.Insert(user)
 	if err != nil {
 		switch {
@@ -48,6 +51,8 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
+
+	// Respond with the newly registered user data in JSON format.
 	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

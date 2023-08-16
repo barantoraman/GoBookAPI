@@ -70,7 +70,6 @@ func main() {
 
 	logger.PrintInfo("database connection pool established", nil)
 
-	// Declare an instance of the application struct
 	app := &application{
 		config: cfg,
 		logger: logger,
@@ -105,6 +104,5 @@ func openDB(cfg config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	// Return the sql.DB connection pool.
 	return db, nil
 }
