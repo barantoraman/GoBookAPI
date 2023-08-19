@@ -1,0 +1,36 @@
+version: '3.8'
+
+networks:
+  my_network:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:13-alpine3.15
+    environment:
+      POSTGRES_USER: gobookapi
+      POSTGRES_PASSWORD: pa55word
+      POSTGRES_DB: gobookapi
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - my_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "on-failure"
+    environment:
+      DB_DSN: "postgres://gobookapi:pa55word@db/gobookapi?sslmode=disable"
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+    networks:
+      - my_network
+
+volumes:
+  postgres-data:

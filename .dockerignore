@@ -1,0 +1,17 @@
+# Git files #
+#############
+.git
+.gitignore 
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+
+# Notes and snippets #
+######################
+*.txt
+
+# Vendor #
+##########
+vendor/
