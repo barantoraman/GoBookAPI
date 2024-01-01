@@ -177,7 +177,7 @@ curl localhost:4000/v1/healthcheck
 - Metrics:
   - Endpoint to retrieve application metrics for monitoring and analysis.
 ```bash 
-curl localhost:4000/v1/debug/vars 
+curl localhost:4000/debug/vars 
 ```
 
 
