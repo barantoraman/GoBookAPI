@@ -39,7 +39,7 @@ go/run:
 setup: confirm go/tidy go/run migrate
 
 # Build the containers  using the configuration in docker-compose.yaml
-docker/build: confirm
+docker/build:
 	docker compose build
 
 # Start the containers using the configuration in docker-compose.yaml

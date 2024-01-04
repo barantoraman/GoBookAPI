@@ -43,6 +43,10 @@ using tokens, and execute various operations including adding, deleting, viewing
     - Returning pagination metadata
   - Optimistic concurrency control
 
+- **Other:**
+  - Continuous integration (CI)
+  - Docker (Containerization)
+
 
 ## File Structure <a name="structure"></a>
 ```shell
